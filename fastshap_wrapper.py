@@ -31,10 +31,10 @@ class fastshap_wrapper:
 
         # train surrogate model
         # Check for model
-        if os.path.isfile(experiment_name + "cifar surrogate.pt"):
-            print("Loading saved surrogate model")
-            surr = torch.load(experiment_name + "cifar surrogate.pt").to(device)
-            surrogate = ImageSurrogate(surr, width=32, height=32, superpixel_size=2)
+        if os.path.isfile(experiment_name+'cifar surrogate.pt'):
+            print('Loading saved surrogate model')
+            surr = torch.load(experiment_name+'cifar surrogate.pt').to(device)
+            self.surrogate = ImageSurrogate(surr, width=32, height=32, superpixel_size=2)
 
         else:
             # Create model
@@ -44,7 +44,7 @@ class fastshap_wrapper:
             ).to(device)
 
             # Set up surrogate object
-            surrogate = ImageSurrogate(surr, width=32, height=32, superpixel_size=2)
+            self.surrogate = ImageSurrogate(surr, width=32, height=32, superpixel_size=2)
 
             # Set up datasets
             train_surr = DatasetInputOnly(train_set)
@@ -52,7 +52,7 @@ class fastshap_wrapper:
             original_model = nn.Sequential(model, nn.Softmax(dim=1))
 
             # Train
-            surrogate.train_original_model(
+            self.surrogate.train_original_model(
                 train_surr,
                 val_surr,
                 original_model,
@@ -68,22 +68,23 @@ class fastshap_wrapper:
             surr.cpu()
             torch.save(surr, experiment_name + "cifar surrogate.pt")
             surr.to(device)
+            
 
         from unet import UNet
         from fastshap import FastSHAP
 
         # Check for model
-        if os.path.isfile(experiment_name + "cifar explainer.pt"):
-            print("Loading saved explainer model")
-            explainer = torch.load(experiment_name + "cifar explainer.pt").to(device)
-            fastshap = FastSHAP(explainer, surrogate, link=nn.LogSoftmax(dim=1))
+        if os.path.isfile(experiment_name+'cifar explainer.pt'):
+            print('Loading saved explainer model')
+            explainer = torch.load(experiment_name+'cifar explainer.pt').to(device)
+            fastshap = FastSHAP(explainer, self.surrogate, link=nn.LogSoftmax(dim=1))
             self.fastshap = fastshap
         else:
             # Set up explainer model
             explainer = UNet(n_classes=10, num_down=2, num_up=1, num_convs=3).to(device)
 
             # Set up FastSHAP object
-            fastshap = FastSHAP(explainer, surrogate, link=nn.LogSoftmax(dim=1))
+            fastshap = FastSHAP(explainer, self.surrogate, link=nn.LogSoftmax(dim=1))
 
             # Set up datasets
             fastshap_train = DatasetInputOnly(train_set)
@@ -112,8 +113,7 @@ class fastshap_wrapper:
     def plot_results(self, val_set):
         # plot results
         import matplotlib.pyplot as plt
-
-        device = next(self.fastshap.explainer.parameters()).device
+#         device = next(self.fastshap.explainer.parameters()).device
         # Select one image from each class
         dset = val_set
         targets = np.array(dset.targets)
@@ -124,18 +124,13 @@ class fastshap_wrapper:
         x = torch.stack(x)
 
         # Get explanations
-        values = self.fastshap.shap_values(x.to(device))
+        values = self.fastshap.shap_values(x.to(self.device))
 
         # Get predictions
-        pred = (
-            surrogate(
-                x.to(device),
-                torch.ones(num_classes, surrogate.num_players, device=device),
-            )
-            .softmax(dim=1)
-            .cpu()
-            .data.numpy()
-        )
+        pred = self.surrogate(
+            x.to(self.device),
+            torch.ones(num_classes, self.surrogate.num_players, device=self.device)
+        ).softmax(dim=1).cpu().data.numpy()
 
         fig, axarr = plt.subplots(num_classes, num_classes + 1, figsize=(22, 20))
 
