@@ -10,6 +10,7 @@ import os.path
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 from copy import deepcopy
+from resnet import ResNet18
 
 CIFAR10_CLASSES = (
     "plane",
@@ -60,9 +61,8 @@ class CIFAR10AugmentationExperiment:
         # fmt: on
 
         # Initialize an untrained ResNet18 model in `self.model`
-        self.model = torch.hub.load(
-            "pytorch/vision:v0.10.0", "resnet18", pretrained=False
-        )
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model = ResNet18(num_classes=10).to(device)
 
         if torch.cuda.is_available():
             self.model.cuda()
