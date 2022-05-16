@@ -19,6 +19,7 @@ class fastshap_wrapper():
         
         # Select device
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = device
         
         # train surrogate model
         # Check for model
@@ -69,7 +70,7 @@ class fastshap_wrapper():
             print('Loading saved explainer model')
             explainer = torch.load(experiment_name+'cifar explainer.pt').to(device)
             fastshap = FastSHAP(explainer, surrogate, link=nn.LogSoftmax(dim=1))
-
+            self.fastshap = fastshap
         else:
             # Set up explainer model
             explainer = UNet(n_classes=10, num_down=2, num_up=1, num_convs=3).to(device)
@@ -98,12 +99,13 @@ class fastshap_wrapper():
             explainer.cpu()
             torch.save(explainer, experiment_name+'cifar explainer.pt')
             explainer.to(device)
+            self.fastshap = fastshap
 
     
-    def plot_results():
+    def plot_results(self, val_set):
         # plot results
         import matplotlib.pyplot as plt
-
+        device = next(self.fastshap.explainer.parameters()).device
         # Select one image from each class
         dset = val_set
         targets = np.array(dset.targets)
@@ -114,7 +116,7 @@ class fastshap_wrapper():
         x = torch.stack(x)
 
         # Get explanations
-        values = fastshap.shap_values(x.to(device))
+        values = self.fastshap.shap_values(x.to(device))
 
         # Get predictions
         pred = surrogate(
