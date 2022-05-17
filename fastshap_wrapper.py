@@ -24,7 +24,7 @@ class fastshap_wrapper:
         experiment_name="",
     ):
         self.model = model
-
+        torch.manual_seed(0)
         # Select device
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.device = device
@@ -110,8 +110,9 @@ class fastshap_wrapper:
             explainer.to(device)
             self.fastshap = fastshap
 
-    def plot_results(self, val_set):
+    def plot_results(self, val_set, return_raw=False, num_samples=10):
         # plot results
+        np.random.seed(42)
         import matplotlib.pyplot as plt
 #         device = next(self.fastshap.explainer.parameters()).device
         # Select one image from each class
@@ -119,13 +120,23 @@ class fastshap_wrapper:
         targets = np.array(dset.targets)
         num_classes = targets.max() + 1
         inds_lists = [np.where(targets == cat)[0] for cat in range(num_classes)]
-        inds = [np.random.choice(cat_inds) for cat_inds in inds_lists]
+        if return_raw:
+            inds = np.concatenate([np.random.choice(cat_inds, size=num_samples) for cat_inds in inds_lists])
+        else:
+            inds = [np.random.choice(cat_inds) for cat_inds in inds_lists]
         x, y = zip(*[dset[ind] for ind in inds])
         x = torch.stack(x)
 
         # Get explanations
         values = self.fastshap.shap_values(x.to(self.device))
-
+        
+        if return_raw:
+            shapley_values = []
+            for ind,a in enumerate(y):
+                shapley_values.append(self.fastshap.shap_values(x)[ind,a,:,:])
+            shapley_values = np.stack(shapley_values)
+            return values
+        
         # Get predictions
         pred = self.surrogate(
             x.to(self.device),
@@ -148,8 +159,8 @@ class fastshap_wrapper:
                 "Ship",
                 "Truck",
             ]
-            mean = np.array([0.4914, 0.4822, 0.4465])[:, np.newaxis, np.newaxis]
-            std = np.array([0.2023, 0.1994, 0.2010])[:, np.newaxis, np.newaxis]
+            mean = np.array([0.5, 0.5, 0.5])[:, np.newaxis, np.newaxis]
+            std = np.array([0.5, 0.5, 0.5])[:, np.newaxis, np.newaxis]
             im = x[row].numpy() * std + mean
             im = im.transpose(1, 2, 0).astype(float)
             im = np.clip(im, a_min=0, a_max=1)

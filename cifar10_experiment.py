@@ -39,7 +39,8 @@ class CIFAR10AugmentationExperiment:
     test: torchvision.datasets.cifar.CIFAR10
       Evaluation data, downloaded upon instantiation
     """
-
+    torch.manual_seed(0)
+    
     # User only needs to supply this
     transforms: torchvision.transforms.Compose
 
@@ -51,6 +52,7 @@ class CIFAR10AugmentationExperiment:
     def __post_init__(self) -> None:
         """Downloads data and applies transforms to TRAIN DATA ONLY. Also initializes `self.model`"""
         # fmt: off
+        
         self.train_set = torchvision.datasets.CIFAR10(root="./data", train=True, download=True, transform=self.transforms)
         self.test_set = torchvision.datasets.CIFAR10(root="./data", train=False, download=True, transform=torchvision.transforms.Compose(
         [
@@ -67,7 +69,7 @@ class CIFAR10AugmentationExperiment:
         if torch.cuda.is_available():
             self.model.cuda()
 
-    def train(self, nepoch: int = 10, batch_size: int = 4, *args, **kwargs):
+    def train(self, nepoch: int = 10, batch_size: int = 4, experiment_name: str = '', *args, **kwargs):
         """Train the ResNet18 model in `self.model`, using `self.train_set`
 
         nepoch: int, default=10
@@ -214,7 +216,7 @@ class CIFAR10AugmentationExperiment:
 
         # Save model
         self.model.cpu()
-        torch.save(self.model, "cifar resnet.pt")
+        torch.save(self.model, experiment_name+"cifar resnet.pt")
         self.model.to(device)
 
     def evaluate_model(self) -> None:
