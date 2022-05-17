@@ -218,6 +218,15 @@ class CIFAR10AugmentationExperiment:
         self.model.cpu()
         torch.save(self.model, experiment_name+"cifar resnet.pt")
         self.model.to(device)
+        
+
+        with open(experiment_name+"val_hist.txt", "w") as f:
+            for i in self.val_hist:
+                f.write(str(i) +"\n")
+        with open(experiment_name+"train_hist.txt", "w") as f:
+            for i in self.train_hist:
+                f.write(str(i) +"\n")
+        
 
     def evaluate_model(self) -> None:
         """Evaluate the model. Predict model over test set and produce diagnostic plots, tables, etc."""

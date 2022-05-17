@@ -135,7 +135,7 @@ class fastshap_wrapper:
             for ind,a in enumerate(y):
                 shapley_values.append(self.fastshap.shap_values(x)[ind,a,:,:])
             shapley_values = np.stack(shapley_values)
-            return values
+            return shapley_values
         
         # Get predictions
         pred = self.surrogate(
