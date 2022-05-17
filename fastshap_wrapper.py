@@ -121,7 +121,7 @@ class fastshap_wrapper:
         num_classes = targets.max() + 1
         inds_lists = [np.where(targets == cat)[0] for cat in range(num_classes)]
         if return_raw:
-            inds = np.concatenate([np.random.choice(cat_inds, size=num_samples) for cat_inds in inds_lists])
+            inds = np.concatenate([np.random.choice(cat_inds, size=num_samples, replace=False) for cat_inds in inds_lists])
         else:
             inds = [np.random.choice(cat_inds) for cat_inds in inds_lists]
         x, y = zip(*[dset[ind] for ind in inds])
@@ -133,7 +133,8 @@ class fastshap_wrapper:
         if return_raw:
             shapley_values = []
             for ind,a in enumerate(y):
-                shapley_values.append(self.fastshap.shap_values(x)[ind,a,:,:])
+                interim = self.fastshap.shap_values(x)
+                shapley_values.append(interim[ind,a,:,:])
             shapley_values = np.stack(shapley_values)
             return shapley_values
         
